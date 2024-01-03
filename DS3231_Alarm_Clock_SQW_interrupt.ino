@@ -233,8 +233,9 @@ void loop() {
         }
 
         Alarm_Duration++;
-        // Change the value 59 to increase or decrease the Alarm duration
-        if (Alarm_Duration > 59) {
+        // Change the value 59 to increase or decrease Alarm duration (default 10 minute)
+        if (Alarm_Duration > 599) {
+          rtc.disableAlarm(1);
           Button_Sound(0);
           Alarm_Duration = 0;
           Alarm_Start = false;
@@ -270,9 +271,7 @@ void loop() {
 
   // BUTTON USE to Stop the Alarm
   if (btn_Down == LOW && Alarm_Start == true) {
-    DateTime now = rtc.now();
     rtc.disableAlarm(1);
-    rtc.clearAlarm(1);
     Button_Sound(0);
     Alarm_Start = false;
     Alarm_Duration = 0;
