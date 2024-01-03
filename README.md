@@ -1,6 +1,11 @@
 # ALARM_CLOCK_DS3231
-alarm clock with ds3231 sqw pin polling.
+Alarm Clock with DS3231 SQW Pin Interrupt & Oled Display.
 #
-this is an edited alarm clock I did to change from originally save to arduino EEPROM to saved into DS3231 EEPROM. so the alarm is triggered by polling the SQW pin on DS3231. but 1 downside is I still can't figure out how to make sqw pin as interrupt if the arduino goes into sleep mode, so as aworkaround to shut off the display, I add DISPLAYOFF & DISPLAYOF function from SSD1306 library.
+I spend weeks to configure how to anable the SQW pin on DS3231 RTC module for alarm triggering (noob me).
 
-whoever got the idea or to help, please consider edit the code to make sleep interrupt work :)
+the clock originally use Arduino EEPROM to save the alarm. by using Arduino EEPROM memory user cannot use Low Power Sleep to wake with the SQW Pin found on DS3231 module.
+by saving the alarm into DS3231 in-board EEPROM now we can use sleep mode to save energy and to prevent oled display to keep power on for a long period time.
+#
+As you can see here, Arduino is going to sleep after some time (default is 10 sec), then user can use button to wake from sleep mode or when alarm is set, the SQW pin interrupt will trigger and keep firing until a button is pressed to turn the alarm OFF.
+
+![]https://github.com/fyrus7/ALARM_CLOCK_DS3231/blob/main/Alarm%20Clock%20SQW.jpg)
