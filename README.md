@@ -8,6 +8,6 @@ by saving the alarm into DS3231 in-board EEPROM now we can use sleep mode to sav
 #
 As you can see here, Arduino is going to sleep after some time (default is 10 sec), then user can use button to wake from sleep mode or when alarm is set, the SQW pin interrupt will trigger and keep firing until a button is pressed to turn the alarm OFF.
 
-When alarm is trigger, SQW pin will stay LOW until button is pressed to stop the alarm. This to wake the display and fire the alarm buzzer on and off cycle, if SQW pin goes back to 1Hz mode after alarm is trigger, Arduino will go back to sleep and display will not turn up plus the buzzer will not stop beeping event stop alarm button is pressed.
+When alarm is trigger, SQW pin will stay LOW until button is pressed to stop the alarm. This to wake the display and fire the alarm buzzer on and off cycle, if SQW pin goes back to 1Hz mode after alarm is trigger, Arduino will go back to sleep and display will not turn up plus the buzzer will buzzing non stop even after stop alarm button is pressed.
 
 ![](https://github.com/fyrus7/ALARM_CLOCK_DS3231/blob/main/Alarm%20Clock%20SQW.jpg)
