@@ -58,7 +58,7 @@ const unsigned char Select_Buttom [] PROGMEM = {
 
 #include "RTClib.h"
 #include <TimerOne.h>
-//#include <LowPower.h>
+#include <LowPower.h>
 #include <Adafruit_SSD1306.h>
 
 RTC_DS3231 rtc;
@@ -148,15 +148,13 @@ byte Alarm_Duration = 0;
 bool Blink_Alarm_Display = false;
 
 
-const unsigned long sleepTimeout = 15000;
+const unsigned long sleepTimeout = 10000;
 volatile unsigned long lastActivityTime = 0; // Declare as volatile for ISR safety
-const int CRT_display = 300; // CRT Off Animation duration in milliseconds
 
 
 void wakeUp(){
   // let this empty
 }
-
 
 void timerISR() {
   // let this empty
@@ -164,7 +162,7 @@ void timerISR() {
 
 
 void setup() {
- //Serial.begin(9600);
+ Serial.begin(9600);
 
   pinMode(3, INPUT_PULLUP);
   pinMode(4, INPUT_PULLUP);
@@ -174,7 +172,6 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(3), wakeUp, FALLING);
   attachInterrupt(digitalPinToInterrupt(4), wakeUp, FALLING);
-  attachInterrupt(digitalPinToInterrupt(sqwPin), wakeUp, FALLING);
 
   if (! rtc.begin()) {
    // Serial.println("Couldn't find RTC");
@@ -186,8 +183,8 @@ void setup() {
    // Serial.println("RTC lost power, let's set the time!");
    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
-  // When time needs to be re-set on a previously configured device.
-  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
+  rtc.disable32K(); // disable 32K Pin
 
   rtc.disableAlarm(1);
   rtc.disableAlarm(2);
@@ -203,6 +200,7 @@ void setup() {
   // Set up TimerOne to call the timerISR function every 1 second
   Timer1.initialize(1000000); // 1 second interval
   Timer1.attachInterrupt(timerISR);
+
 }
 
 
@@ -218,7 +216,7 @@ void loop() {
     // Time and Date are displayed if Menu Status = False
     if (Menu_Stat == false) {
       GetDateTime();
-
+ 
 
       display.clearDisplay();
 
@@ -231,16 +229,12 @@ void loop() {
         Alarm_Start = true;
       }
 
-
-
-      DateTime now = rtc.now();
-      char buff[] = "hh:mm"; // to display alarm time when triggered
-
+      //DateTime now = rtc.now();
+      char buff[] = "hh:mm";
 
       // A condition that is executed if the alarm starts and stops
-        if (digitalRead(sqwPin) == LOW){ // alarm trigger with sqw pin
-          
-      // Serial.println(now.toString(buff));
+        if (digitalRead(sqwPin) == LOW){
+          Serial.println("SQW Interrupt!     = Display ON");
         Alarm_Start = true;
         Alarm_Sound = !Alarm_Sound;
         if (Alarm_Sound == true) {
@@ -269,10 +263,12 @@ void loop() {
         display.print("Alarm");
         display.setCursor(82, 32);
 
+        DateTime now = rtc.now();
         display.print(now.toString(buff));
 
       } else {
-        Digital_Clock_and_Date(_hour12, _minute, _second, _dtw, _day, _month ,_year);
+        Digital_Clock_and_Date(_hour24, _minute, _second, _dtw, _day, _month ,_year);
+        //Digital_Clock_and_Date(_hour12, _minute, _second, _dtw, _day, _month ,_year);
       }
       
       display.display();
@@ -286,12 +282,13 @@ void loop() {
   if (btn_Down == LOW && Alarm_Start == true) {
     DateTime now = rtc.now();
     //Button_Sound(1);
-    delay(1000);
+    //delay(1000);
     Button_Sound(0);
     Alarm_Start = false;
     Alarm_Duration = 0;
 
     read_button();
+    //Timer1.start();
 
     // Disable DS3231 alarm trigger
     rtc.disableAlarm(1);
@@ -366,46 +363,23 @@ void loop() {
     delay(50);
   }
 
-
   // Check if it's time to sleep when no button is pressed.
   if (millis() - lastActivityTime > sleepTimeout) {
-    displayOff();
-    Timer1.stop();
-    displayOn();
-    Timer1.start();
-  }
-}
-/*
-  // Check if it's time to sleep when no button is pressed.
-  if (millis() - lastActivityTime > sleepTimeout) {
-    displayOff();
+    display.ssd1306_command(SSD1306_DISPLAYOFF);
+    Serial.println("Going to Sleep Now = Display OFF");
+    delay(1000);
     Timer1.stop();
     sleep();
     Timer1.start();
   }
 }
-*/
 
-void displayOff() { // turn display off when sleep.
-  unsigned long CRTStartTime = millis();
-  while (millis() - CRTStartTime <= CRT_display) {
-    int width = map(millis() - CRTStartTime, 0, CRT_display, 128, 0);
-    display.clearDisplay();
-    display.fillRect((128 - width) / 2, 64 / 2, width, 2, SSD1306_WHITE);   
-    display.display();
-  }
-  display.ssd1306_command(SSD1306_DISPLAYOFF);
-}
-/*
+
 void sleep() { // sleep forever until interrupt been pressed.
+  attachInterrupt(digitalPinToInterrupt(sqwPin), wakeUp, FALLING);
   LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
-  displayOn();
-}
-*/
-void displayOn() { // turn on display when button is pressed.
-  if (digitalRead(sqwPin) == LOW || digitalRead(3) == LOW || digitalRead(4) == LOW){
+  Serial.println("Button Interrupt   = Display ON");
   display.ssd1306_command(SSD1306_DISPLAYON);
-  }
 }
 
 
@@ -414,7 +388,7 @@ void read_button() {
   btn_Select = digitalRead(4);
   btn_Down = digitalRead(3);
 
-  if (btn_Select == LOW || btn_Down == LOW){
+  if (btn_Select == LOW || btn_Down == LOW || digitalRead(sqwPin) == LOW){
     lastActivityTime = millis();
   }
 }
@@ -422,13 +396,13 @@ void read_button() {
 
 void GetDateTime(){
   DateTime now = rtc.now();
-  _day=now.day();
-  _month=now.month();
-  _year=now.year();
-  _hour24=now.hour();
-  _minute=now.minute();
-  _second=now.second();
-  _dtw=now.dayOfTheWeek();
+  _day    = now.day();
+  _month  = now.month();
+  _year   = now.year();
+  _hour24 = now.hour();
+  _minute = now.minute();
+  _second = now.second();
+  _dtw    = now.dayOfTheWeek();
 
   hr24=_hour24;
   if (hr24>12) {
@@ -446,7 +420,7 @@ void GetDateTime(){
   }
   else {
     strcpy(st, "PM");
-  }  
+  } 
 }
 
 
@@ -1033,12 +1007,12 @@ void Set_Alarm() {
   }
 
   if (btn_Select == LOW && Menu_Set_Alarm == 1) {
-    delay(100);
+    delay(250);
     Set_hour_alarm = true;
   }
 
   if (btn_Select == LOW && Menu_Set_Alarm == 2) {
-    delay(100);
+    delay(250);
     Set_minute_alarm = true;
   }
 
