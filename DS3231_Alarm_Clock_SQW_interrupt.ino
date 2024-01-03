@@ -1,4 +1,4 @@
-// Variables for the x and y axis midpoint values of the Analog Clock
+// X and Y axis midpoint values of the Analog Clock
 byte clockCenterX=31;
 byte clockCenterY=31;
 
@@ -148,8 +148,8 @@ byte Alarm_Duration = 0;
 bool Blink_Alarm_Display = false;
 
 
-const unsigned long sleepTimeout = 10000;
-volatile unsigned long lastActivityTime = 0; // Declare as volatile for ISR safety
+const unsigned long sleepTimeout = 10000; // sleep after 10 sec idle
+volatile unsigned long lastActivityTime = 0;
 
 
 void wakeUp(){
@@ -162,22 +162,16 @@ void timerISR() {
 
 
 void setup() {
- Serial.begin(9600);
 
   pinMode(3, INPUT_PULLUP);
   pinMode(4, INPUT_PULLUP);
   pinMode(sqwPin, INPUT_PULLUP);
-
   pinMode(Buzzer, OUTPUT);
 
   attachInterrupt(digitalPinToInterrupt(3), wakeUp, FALLING);
   attachInterrupt(digitalPinToInterrupt(4), wakeUp, FALLING);
 
-  if (! rtc.begin()) {
-   // Serial.println("Couldn't find RTC");
-   // Serial.flush();
-    while (1);
-  }
+  rtc.begin();
 
   if (rtc.lostPower()) {
    // Serial.println("RTC lost power, let's set the time!");
@@ -197,8 +191,7 @@ void setup() {
   display.display();
   delay(1000);
 
-  // Set up TimerOne to call the timerISR function every 1 second
-  Timer1.initialize(1000000); // 1 second interval
+  Timer1.initialize(1000000);
   Timer1.attachInterrupt(timerISR);
 
 }
@@ -217,7 +210,6 @@ void loop() {
     if (Menu_Stat == false) {
       GetDateTime();
  
-
       display.clearDisplay();
 
       //display.drawBitmap(10, 10, FSufi3, 45, 45, WHITE);
@@ -229,12 +221,9 @@ void loop() {
         Alarm_Start = true;
       }
 
-      //DateTime now = rtc.now();
-      char buff[] = "hh:mm";
 
       // A condition that is executed if the alarm starts and stops
         if (digitalRead(sqwPin) == LOW){
-          Serial.println("SQW Interrupt!     = Display ON");
         Alarm_Start = true;
         Alarm_Sound = !Alarm_Sound;
         if (Alarm_Sound == true) {
@@ -264,11 +253,12 @@ void loop() {
         display.setCursor(82, 32);
 
         DateTime now = rtc.now();
+        char buff[] = "hh:mm";
         display.print(now.toString(buff));
 
       } else {
-        Digital_Clock_and_Date(_hour24, _minute, _second, _dtw, _day, _month ,_year);
-        //Digital_Clock_and_Date(_hour12, _minute, _second, _dtw, _day, _month ,_year);
+        //Digital_Clock_and_Date(_hour24, _minute, _second, _dtw, _day, _month ,_year); // 24 hour clock
+        Digital_Clock_and_Date(_hour12, _minute, _second, _dtw, _day, _month ,_year); // 12 hour clock
       }
       
       display.display();
@@ -281,21 +271,13 @@ void loop() {
   // BUTTON USE to Stop the Alarm
   if (btn_Down == LOW && Alarm_Start == true) {
     DateTime now = rtc.now();
-    //Button_Sound(1);
-    //delay(1000);
+    rtc.disableAlarm(1);
+    rtc.clearAlarm(1);
     Button_Sound(0);
     Alarm_Start = false;
     Alarm_Duration = 0;
-
     read_button();
-    //Timer1.start();
 
-    // Disable DS3231 alarm trigger
-    rtc.disableAlarm(1);
-    rtc.clearAlarm(1);
-
-    // Reset the alarm for another cycle
-    setAlarmTime(now.hour(), now.minute());
   }
 
 
@@ -366,8 +348,6 @@ void loop() {
   // Check if it's time to sleep when no button is pressed.
   if (millis() - lastActivityTime > sleepTimeout) {
     display.ssd1306_command(SSD1306_DISPLAYOFF);
-    Serial.println("Going to Sleep Now = Display OFF");
-    delay(1000);
     Timer1.stop();
     sleep();
     Timer1.start();
@@ -375,10 +355,9 @@ void loop() {
 }
 
 
-void sleep() { // sleep forever until interrupt been pressed.
+void sleep() { // sleep forever until interrupt
   attachInterrupt(digitalPinToInterrupt(sqwPin), wakeUp, FALLING);
   LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
-  Serial.println("Button Interrupt   = Display ON");
   display.ssd1306_command(SSD1306_DISPLAYON);
 }
 
@@ -546,13 +525,7 @@ void Digital_Clock_and_Date(byte h, byte m, byte s, byte dtw, byte dy, byte mt, 
   } else {
     display.print(s);
   }
-
-  // TEMPERATURE DISPLAY
-/*  display.setCursor(73, 10);
-  display.print(F("Temp: "));
-  display.print(rtc.getTemperature());
-  display.print(F(" C"));
-*/
+  
 
   // To display Day Name
   if (Menu_Stat == false) {
@@ -981,7 +954,6 @@ void setAlarmTime(int hour, int minute) {
   DateTime alarmTime(now.year(), now.month(), now.day(), hour, minute, 0);
 
   if (alarmTime < now) {
-    // If the alarm time is in the past, set it for the next day
     alarmTime = alarmTime + TimeSpan(1, 0, 0, 0);
   }
   rtc.setAlarm1(alarmTime, DS3231_A1_Hour);
