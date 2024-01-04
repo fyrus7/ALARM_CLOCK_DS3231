@@ -169,7 +169,6 @@ void setup() {
   pinMode(Buzzer, OUTPUT);
 
   attachInterrupt(digitalPinToInterrupt(3), wakeUp, FALLING);
-  attachInterrupt(digitalPinToInterrupt(4), wakeUp, FALLING);
 
   rtc.begin();
 
@@ -219,6 +218,7 @@ void loop() {
 
         if (Alarm_Stat == 1) {
         Alarm_Start = true;
+          display.drawBitmap(60, 2, Select_Buttom, 5, 3, WHITE);
       }
 
 
@@ -950,7 +950,7 @@ void setAlarmTime(int hour, int minute) {
   rtc.clearAlarm(1);
 
   DateTime now = rtc.now();
-  DateTime alarmTime(now.year(), now.month(), now.day(), hour, minute, 0);
+  DateTime alarmTime(0, 0, 0, hour, minute, 0);
 
   if (alarmTime < now) {
     alarmTime = alarmTime + TimeSpan(1, 0, 0, 0);
