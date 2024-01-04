@@ -280,8 +280,8 @@ void loop() {
   }
 
 
-  // Conditions for displaying to the Menu
-  if (btn_Select == LOW && Menu_Stat == false) {
+  // Press both button to enter setting Menu
+  if (btn_Down == LOW && btn_Select == LOW && Menu_Stat == false) {
     delay(500);
     Menu_Cnt = 1;
     Menu_Stat = true;
